@@ -1,0 +1,182 @@
+
+type SystemState @entity {
+  id: ID!
+  totalDebt: BigDecimal!
+  totalCollateral: BigDecimal!
+  totalRepaid: BigDecimal!
+  totalDefaulted: BigDecimal!
+  totalFees: BigDecimal!
+  lastUpdateTimestamp: BigInt!
+  lastUpdateBlocknumber: BigInt!
+}
+
+
+type Collateral @entity {
+  id: ID!
+  symbol: String!
+  decimals: Int!
+  priceUSD: BigDecimal!
+  minColRatio: BigDecimal
+}
+
+type PairedToken @entity {
+  id: ID!
+  symbol: String!
+  decimals: Int!
+}
+
+type Market @entity {
+  id: ID!
+  collateral: Collateral!
+  pairedToken: PairedToken!
+  expiry: BigInt!
+  mintRatio: BigDecimal!
+  fees: BigDecimal!
+  feeRate: BigDecimal!
+  rcToken: Bytes
+  rrToken: Bytes
+  totalCollateral: BigDecimal!
+  totalBorrowers: BigInt!
+  totalLenders: BigInt!
+  premiumPerCollateralLent: BigDecimal!
+  lastUpdateTimestamp: BigInt!
+  lastUpdateBlocknumber: BigInt!
+  borrowAPY: BigDecimal!
+  lendingAPY: BigDecimal!
+}
+
+type User @entity {
+  id: ID!
+  totalPnL: BigDecimal!
+  positions: [UserPosition!]! @derivedFrom(field: "user")
+  flashloans: [FlashloanEvent!]! @derivedFrom(field: "user")
+  mmDeposits: [MarketMakeDepositEvent!]! @derivedFrom(field: "user")
+  deposits: [DepositEvent!]! @derivedFrom(field: "user")
+  repays: [RepayEvent!]! @derivedFrom(field: "user")
+  redeems: [RedeemEvent!]! @derivedFrom(field: "user")
+  collects: [CollectEvent!]! @derivedFrom(field: "user")
+}
+
+
+
+type UserPosition @entity {
+  id: ID!
+  user: User!
+  amountCollateral: BigDecimal
+  amountBorrowed: BigDecimal
+  amountLent: BigDecimal
+  market: Market!
+  lastUpdateBlocknumber: BigInt!
+  lastUpdateTimestamp: BigInt!
+  isExpired: Boolean!
+  rrTokenAmount: BigDecimal!
+  rcTokenAmount: BigDecimal!
+  borrowAPY: BigDecimal
+  lendingAPY: BigDecimal
+  currentPnL: BigDecimal!
+  initialCollateralPrice: BigDecimal!
+}
+
+type FlashloanEvent @entity {
+  id: ID!
+  user: User!
+  token: Bytes!
+  amount: BigDecimal!
+  loanTokenPriceUsd: BigDecimal!
+  fees: BigDecimal!
+  timestamp:BigInt!
+  blocknumber:BigInt!
+}
+
+type MarketMakeDepositEvent @entity {
+"""
+Market make deposit paired Token to received rcTokens 
+Considered as an immediately repaid loan
+"""
+  id: ID!
+  user: User!
+  market: Market!
+  collateralAmountDeposited: BigDecimal!
+  "Fees collected on rcToken"
+  fees: BigDecimal!
+  mintAmount: BigDecimal!
+  timestamp:BigInt!
+  blocknumber:BigInt!
+}
+
+type DepositEvent @entity {
+"""
+Deposit collateral to a Ruler Pair 
+Sender receives rcTokens and rrTokens
+"""
+  id: ID!
+  user: User!
+  market: Market!
+  collateralAmountDeposited: BigDecimal!
+  mintAmount: BigDecimal!
+  timestamp:BigInt!
+  blocknumber:BigInt!
+}
+
+type RedeemEvent @entity {
+"""
+Redeem with rrTokens and rcTokens before expiry only, sender receives collateral
+Fees charged on collateral
+Before expiry only
+"""
+  id: ID!
+  user: User!
+  market: Market!
+  "Collateral amount redeemed before subtracting fees" 
+  collateralAmountRedeemed: BigDecimal!
+  "fees in collateral"
+  fees: BigDecimal!
+  rTokenAmount: BigDecimal!
+  timestamp: BigInt!
+  blocknumber: BigInt!
+}
+
+type RepayEvent @entity {
+"""
+Repay with equal amounts of rrTokens and paired token amount
+Sender receives collateral, no fees charged on collateral
+Before expiry, else collateral forfeitted
+"""
+  id: ID!
+  user: User!
+  market: Market!
+  collateralAmountReceived: BigDecimal!
+  "fees in rrToken"
+  fees: BigDecimal!
+  rrTokenAmountRepaid: BigDecimal!
+  timestamp: BigInt!
+  blocknumber: BigInt!
+}
+
+type CollectEvent @entity {
+"""
+Sender collect paired tokens by returning same amount of rcTokens to Ruler
+Post Expiry
+"""
+  id: ID!
+  user: User!
+  market: Market!
+  collateralAmountReceived: BigDecimal!
+  rcTokenAmountRepaid: BigDecimal!
+  defaultedLoanAmount: BigDecimal!
+  "paired token amount to pay = rcToken amount * (1 - default ratio), no fees"
+  pairedTokenAmtCollected: BigDecimal!
+  "collateral amount to collect before subtracting fees"
+  colAmountToCollect: BigDecimal!
+  "fees = colAmountToCollect * _feeRate / 1e18"
+  fees: BigDecimal!
+  timestamp: BigInt!
+  blocknumber: BigInt!
+}
+
+
+
+type Metapool @entity {
+  id: ID!
+  market: Market!
+}

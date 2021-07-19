@@ -1,0 +1,100 @@
+specVersion: 0.0.2
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: RulerCore
+    network: mainnet
+    source:
+      address: "0xF19f4490A7fCCfEf2DaB8199ACDB2Dc1B9027C18"
+      abi: RulerCore
+      startBlock: 11964006
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - SystemState
+        - Collateral
+        - Market
+        - User
+        - FlashloanEvent
+        - MarketMakeDepositEvent
+        - DepositEvent
+        - RepayEvent
+        - RedeemEvent
+        - CollectEvent
+        - UserPosition
+      abis:
+        - name: RulerCore
+          file: ./abis/RulerCore.json
+        - name: RERC20
+          file: ./abis/RERC20.json
+        - name: RulerOracle
+          file: ./abis/RulerOracle.json
+        - name: CurvefiFactory
+          file: ./abis/CurvefiFactory.json
+      eventHandlers:
+        - event: PairAdded(indexed address,indexed address,uint48,uint256)
+          handler: handlePairAdded
+        - event: MarketMakeDeposit(indexed address,indexed address,indexed address,uint48,uint256,uint256)
+          handler: handleMarketMakeDeposit
+        - event: FlashLoan(address,address,uint256)
+          handler: handleFlashLoanEvent
+      file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: RulerZap
+    network: mainnet
+    source:
+      address: "0x3a3AE0f08cAF7C267305b99B2ce6780BdEEfC25d"
+      abi: RulerZap
+      startBlock: 12032302
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - OwnershipTransferred
+      abis:
+        - name: RulerZap
+          file: ./abis/RulerZap.json
+        - name: RulerOracle
+          file: ./abis/RulerOracle.json
+        - name: CurvefiFactory
+          file: ./abis/CurvefiFactory.json
+      callHandlers:
+        - function: depositWithPermitAndSwapWithCurve(address,address,uint48,uint256,uint256,address,int128,uint256,(address,address,uint256,uint256,uint8,bytes32,bytes32))
+          handler: handleDepositWithPermitAndSwapWithCurve
+        - function: depositAndSwapWithCurve(address,address,uint48,uint256,uint256,address,int128,uint256)
+          handler: handleDepositAndSwapWithCurve
+      file: ./src/rulerZap.ts
+  # --------------------------------------
+  #
+  # --------------------------------------
+  #templates:
+  # --------------------------------------
+  #      rToken / rrTokens / rcTokens
+  # --------------------------------------
+# ------------------------------------------
+# curvefi Factory
+templates:
+  - kind: ethereum/contract
+    name: CurvefiFactory
+    network: mainnet
+    source:
+      abi: CurvefiFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Metapool
+      abis:
+        - name: CurvefiFactory
+          file: ./abis/CurvefiFactory.json
+        - name: RulerOracle
+          file: ./abis/RulerOracle.json
+      eventHandlers:
+        - event: TokenExchangeUnderlying(indexed address,int128,uint256,int128,uint256)
+          handler: handleTokenExchangeUnderlying
+      file: ./src/curvefactory.ts
